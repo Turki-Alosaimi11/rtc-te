@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>Prayer Screen</title>
+
+<style>
+*{ box-sizing:border-box; }
+
+html,body{
+    margin:0;
+    height:100%;
+    font-family: Arial;
+    background:#000;
+    color:white;
+    overflow:hidden;
+}
+
+.wrapper{
+    display:flex;
+    width:100vw;
+    height:100vh;
+}
+
+/* ===== يمين ويسار: فيديو ===== */
+.side{
+    flex:1.8;
+    position:relative;
+    overflow:hidden;
+    background:#000;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.side video{
+    width:100%;
+    height:100%;
+    object-fit:contain;
+    display:block;
+}
+
+/* ===== الوسط: مواقيت الصلاة ===== */
+.center{
+    flex:0.7;
+    position:relative;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-start;
+    background:linear-gradient(135deg,#0b5d3b,#061f18);
+    padding:10px 15px;
+    overflow:hidden;
+}
+
+.center::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:rgba(0,0,0,0.35);
+    backdrop-filter: blur(10px);
+    z-index:0;
+}
+
+.center > *{
+    position:relative;
+    z-index:1;
+}
+
+.logo{
+    text-align:center;
+    margin-top:5px;
+}
+.logo img{ width:90px; max-width:55%; }
+
+.title{
+    text-align:center;
+    font-size:13px;
+    font-weight:bold;
+}
+
+.clock{
+    text-align:center;
+    font-size:24px;
+    font-weight:bold;
+    margin-top:5px;
+}
+
+.date{
+    text-align:center;
+    font-size:11px;
+    font-weight:bold;
+    opacity:0.95;
+}
+
+.prayers{
+    display:flex;
+    justify-content:center;
+    flex-wrap:wrap;
+    gap:5px;
+    margin-top:10px;
+}
+
+.prayer{
+    background:rgba(255,255,255,0.08);
+    padding:6px;
+    border-radius:10px;
+    min-width:65px;
+    text-align:center;
+    border:1px solid rgba(255,255,255,0.2);
+    font-size:11px;
+}
+
+.prayer span{
+    display:block;
+    margin-top:3px;
+    font-size:11px;
+}
+
+.countdown{
+    width:92%;
+    max-width:260px;
+    margin:15px auto;
+    padding:10px;
+    text-align:center;
+    background:rgba(255,255,255,0.10);
+    border:2px solid white;
+    border-radius:15px;
+}
+
+.countdown h2{ margin:0; font-size:13px; }
+
+.countdown .time{
+    font-size:15px;
+    margin-top:6px;
+    font-weight:bold;
+}
+
+/* ===== الموقع الرسمي + QR ===== */
+.site-link{
+    text-align:center;
+    margin-top:auto;
+    margin-bottom:55px;
+}
+
+.site-link .site-title{
+    font-size:12px;
+    font-weight:bold;
+    margin-bottom:8px;
+}
+
+.site-link img{
+    width:100px;
+    max-width:60%;
+    background:#fff;
+    padding:6px;
+    border-radius:10px;
+    display:inline-block;
+}
+
+/* حالة الأذان: تبقى ثابتة بالوسط مع تأثير بصري */
+.adhan-active .countdown{
+    border-color:#ffd700;
+    box-shadow:0 0 25px rgba(255,215,0,0.6);
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse{
+    0%,100%{ box-shadow:0 0 15px rgba(255,215,0,0.5); }
+    50%{ box-shadow:0 0 35px rgba(255,215,0,0.9); }
+}
+
+.ticker{
+    position:absolute;
+    bottom:0;
+    width:100%;
+    background:#0b5d3b;
+    overflow:hidden;
+    padding:10px 0;
+    border-top:1px solid rgba(255,255,255,0.3);
+    z-index:1;
+}
+
+.ticker span{
+    display:inline-block;
+    white-space:nowrap;
+    font-size:12px;
+    padding-left:100%;
+    animation: move 25s linear infinite;
+}
+
+@keyframes move{
+    from { transform: translateX(0); }
+    to   { transform: translateX(-100%); }
+}
+
+@media (max-width:900px){
+    .wrapper{ flex-direction:column; }
+    .side{ height:20vh; }
+    .center{ height:60vh; }
+}
+</style>
+</head>
+
+<body>
+
+<div class="wrapper">
+
+    <!-- الجزء الأيسر: فيديو p -->
+    <div class="side">
+        <video autoplay muted loop playsinline>
+            <source src="p.mp4" type="video/mp4">
+        </video>
+    </div>
+
+    <!-- الجزء الأوسط: مواقيت الصلاة -->
+    <div class="center" id="centerBox">
+
+        <div class="logo">
+            <img src="logo.png">
+        </div>
+
+        <div class="title">مؤسسة رسملة للتسويق والمقاولات</div>
+
+        <div class="clock" id="clock">--</div>
+        <div class="date" id="date">--</div>
+
+        <div class="prayers">
+            <div class="prayer">الفجر <span id="fajr"></span></div>
+            <div class="prayer">الظهر <span id="dhuhr"></span></div>
+            <div class="prayer">العصر <span id="asr"></span></div>
+            <div class="prayer">المغرب <span id="maghrib"></span></div>
+            <div class="prayer">العشاء <span id="isha"></span></div>
+        </div>
+
+        <div class="countdown">
+            <h2 id="nextPrayer">الصلاة القادمة</h2>
+            <div class="time" id="countdown">--:--:--</div>
+        </div>
+
+        <div class="site-link">
+            <div class="site-title">الموقع الرسمي لمؤسسة رسملة</div>
+            <img src="Q.jpeg" alt="الموقع الرسمي">
+        </div>
+
+        <div class="ticker">
+            <span>
+                سبحان الله • الحمد لله • لا إله إلا الله • الله أكبر • أستغفر الله • سبحان الله العظيم • الحمد لله رب العالمين • لا حول ولا قوة إلا الله • اللهم صل وسلم على نبينا محمد • أستغفر الله العظيم وأتوب إليه •
+            </span>
+        </div>
+
+        <audio id="adhan" src="A.mp3"></audio>
+
+    </div>
+
+    <!-- الجزء الأيمن: فيديو m -->
+    <div class="side">
+        <video autoplay muted loop playsinline>
+            <source src="m.mp4" type="video/mp4">
+        </video>
+    </div>
+
+</div>
+
+<script>
+
+let times = {};
+let lastPlayed = "";
+let adhanActive = false;
+
+/* تحميل المواقيت */
+async function loadTimes(){
+    const res = await fetch("https://api.aladhan.com/v1/timingsByCity?city=Riyadh&country=SA&method=4");
+    const data = await res.json();
+    const t = data.data.timings;
+
+    times = {
+        fajr: t.Fajr,
+        dhuhr: t.Dhuhr,
+        asr: t.Asr,
+        maghrib: t.Maghrib,
+        isha: t.Isha
+    };
+
+    document.getElementById("fajr").innerText = to12(t.Fajr);
+    document.getElementById("dhuhr").innerText = to12(t.Dhuhr);
+    document.getElementById("asr").innerText = to12(t.Asr);
+    document.getElementById("maghrib").innerText = to12(t.Maghrib);
+    document.getElementById("isha").innerText = to12(t.Isha);
+}
+
+/* الوقت */
+function updateClock(){
+    let d = new Date();
+
+    let h = d.getHours();
+    let m = d.getMinutes();
+    let s = d.getSeconds();
+    let ampm = h>=12?"PM":"AM";
+
+    h = h%12 || 12;
+
+    document.getElementById("clock").innerText =
+    `${h}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')} ${ampm}`;
+}
+
+/* التاريخ */
+function updateDate(){
+    let d = new Date();
+
+    let day = d.toLocaleDateString('ar', {weekday:'long'});
+    let greg = d.toLocaleDateString("en-GB");
+
+    document.getElementById("date").innerText =
+    `${day} | ميلادي: ${greg}`;
+}
+
+/* تحويل */
+function to12(t){
+    let [h,m] = t.split(":").map(Number);
+    let ampm = h>=12?"PM":"AM";
+    h = h%12 || 12;
+    return `${h}:${m.toString().padStart(2,'0')} ${ampm}`;
+}
+
+/* الوقت بالثواني */
+function nowSec(){
+    let d = new Date();
+    return d.getHours()*3600 + d.getMinutes()*60 + d.getSeconds();
+}
+
+/* تحويل وقت صلاة */
+function toSec(t){
+    let [h,m] = t.split(":").map(Number);
+    return h*3600 + m*60;
+}
+
+/* تشغيل الأذان */
+function playAdhan(){
+    let a = document.getElementById("adhan");
+    a.currentTime = 0;
+    a.play();
+
+    adhanActive = true;
+    document.getElementById("centerBox").classList.add("adhan-active");
+
+    /* عند انتهاء ملف الأذان نرجع الحالة طبيعية */
+    a.onended = function(){
+        adhanActive = false;
+        document.getElementById("centerBox").classList.remove("adhan-active");
+    };
+}
+
+/* تحديث العد التنازلي */
+function updateCountdown(){
+
+    let now = nowSec();
+
+    let nextSec = Infinity;
+    let nextName = "";
+
+    for(let p in times){
+        let sec = toSec(times[p]);
+
+        if(sec > now && sec < nextSec){
+            nextSec = sec;
+            nextName = p;
+        }
+    }
+
+    /* إذا ما فيه صلاة قادمة اليوم، ننتقل لأقرب صلاة بكرة (الفجر) */
+    if(!nextName){
+        nextName = "fajr";
+        nextSec = toSec(times.fajr) + 24*3600;
+    }
+
+    let diff = nextSec - now;
+
+    let arabic = {
+        fajr:"الفجر",
+        dhuhr:"الظهر",
+        asr:"العصر",
+        maghrib:"المغرب",
+        isha:"العشاء"
+    };
+
+    document.getElementById("nextPrayer").innerText =
+    "الصلاة القادمة: " + arabic[nextName];
+
+    document.getElementById("countdown").innerText =
+    `${Math.floor(diff/3600)} ساعة : ${Math.floor((diff%3600)/60)} دقيقة : ${diff%60} ثانية`;
+
+    /* 🔴 وقت الأذان */
+    if(diff <= 1 && lastPlayed !== nextName){
+        playAdhan();
+        lastPlayed = nextName;
+    }
+}
+
+/* تشغيل */
+function start(){
+    loadTimes();
+    updateClock();
+    updateDate();
+
+    setInterval(updateClock,1000);
+    setInterval(updateCountdown,1000);
+
+    /* إعادة تحميل المواقيت كل ساعة (احتياط) */
+    setInterval(loadTimes, 60*60*1000);
+}
+
+start();
+
+</script>
+
+</body>
+</html>
